@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -175,13 +174,15 @@ func deleteFromS3Key(repoName string, branchName string) {
 }
 
 func retriveInfoFromHook(hookBody string) (repoName string, branchName string) {
-	t2, _ := url.QueryUnescape(hookBody)
-	t3 := strings.TrimPrefix(t2, "payload=")
-
 	var hook githubHook
-	err := json.Unmarshal([]byte(t3), &hook)
-	if err != nil {
-		fmt.Println(err)
+	body, _ := url.ParseQuery(hookBody)
+	for _, v := range body {
+		for _, vv := range v {
+			err := json.Unmarshal([]byte(vv), &hook)
+			if err != nil {
+				fmt.Println(err)
+			}
+		}
 	}
 	return hook.Repository.Name, hook.Ref
 }
