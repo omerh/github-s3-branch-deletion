@@ -35,19 +35,28 @@ func work(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, er
 }
 
 func deleteFromS3Key(repoName string, branchName string) {
-	bucket, _ := os.LookupEnv("bucket")
+	bucket, exist := os.LookupEnv("bucket")
+	if !exist {
+		fmt.Println("Missing environment variable bucket")
+	}
 	svc := s3.New(session.New())
 	input := &s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(repoName + "/branches/" + branchName),
 	}
-	result, _ := svc.DeleteObject(input)
+	result, err := svc.DeleteObject(input)
+	if err != nil {
+		fmt.Printf("Error deleting key in s3\n%v", err)
+	}
 	fmt.Println(result)
 }
 
 func retriveInfoFromHook(hookBody string) (repoName string, branchName string) {
 	var hook githubHook
-	body, _ := url.ParseQuery(hookBody)
+	body, err := url.ParseQuery(hookBody)
+	if err != nil {
+		fmt.Printf("Failed to parse github hook budy\n%v", err)
+	}
 	for _, v := range body {
 		for _, vv := range v {
 			err := json.Unmarshal([]byte(vv), &hook)
